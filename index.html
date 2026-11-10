@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="robots" content="noindex, nofollow">
+<title>とけい れんしゅう</title>
+<style>
+  :root {
+    --bg: #fff8e7;
+    --ink: #3a2f2a;
+    --short: #e5484d;   /* みじかいはり（あか） */
+    --long: #2f6fed;    /* ながいはり（あお） */
+    --ok: #2fa84f;
+    --card: #ffffff;
+    --line: #e6d9bd;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg); color: var(--ink);
+    font-family: "Hiragino Maru Gothic ProN", "Hiragino Sans", "Yu Gothic", sans-serif;
+    font-size: 20px;
+    -webkit-user-select: none; user-select: none;
+  }
+  .wrap { max-width: 560px; margin: 0 auto; padding: 16px 16px 32px; }
+  h1 { font-size: 30px; text-align: center; margin: 12px 0 4px; }
+  .sub { text-align: center; margin: 0 0 16px; font-size: 17px; }
+  .screen { display: none; }
+  .screen.on { display: block; }
+
+  button {
+    font: inherit; color: inherit; cursor: pointer;
+    border: 3px solid var(--line); background: var(--card);
+    border-radius: 18px; padding: 14px 12px;
+    box-shadow: 0 4px 0 var(--line);
+  }
+  button:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--line); }
+
+  .label { font-weight: bold; margin: 18px 0 8px; }
+  .row { display: grid; gap: 10px; }
+  .row.c3 { grid-template-columns: repeat(3, 1fr); }
+  .lv { font-size: 12.5px; line-height: 1.5; padding: 12px 2px; white-space: nowrap; }
+  .lv b { display: block; font-size: 17px; }
+  .lv.sel { border-color: var(--long); box-shadow: 0 4px 0 var(--long); background: #eaf1ff; }
+  .mode { font-size: 23px; font-weight: bold; text-align: left; padding: 18px; }
+  .mode small { display: block; font-size: 16px; font-weight: normal; margin-top: 4px; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .top button { padding: 8px 14px; font-size: 17px; border-radius: 14px; }
+  .prog { font-weight: bold; }
+  .question { text-align: center; font-size: 24px; font-weight: bold; margin: 12px 0 4px; min-height: 34px; }
+  .question .big { font-size: 34px; color: var(--long); }
+
+  /* iPhoneで とけいと こたえが 1画面に おさまるよう、高さに合わせて とけいを ちぢめる */
+  svg#clock { display: block; width: min(100%, 400px, 44vh); width: min(100%, 400px, 44svh); margin: 0 auto; touch-action: none; }
+  button { touch-action: manipulation; }
+  .wrap { padding-bottom: calc(32px + env(safe-area-inset-bottom)); }
+  .drag svg#clock { cursor: grab; }
+  .num { font-size: 19px; font-weight: bold; fill: var(--ink); text-anchor: middle; dominant-baseline: central; }
+  .mnum { font-size: 11px; font-weight: bold; fill: var(--long); text-anchor: middle; dominant-baseline: central; }
+  #minRing, #wedge { display: none; }
+  .hint #minRing, .hint #wedge { display: block; }
+
+  .legend { display: flex; justify-content: center; gap: 12px; font-size: 13px; white-space: nowrap; margin: 2px 0 8px; }
+  .legend i { display: inline-block; width: 22px; height: 7px; border-radius: 4px; vertical-align: middle; margin-right: 5px; }
+
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choices button { font-size: 24px; font-weight: bold; padding: 16px 6px; }
+  .choices button.ng { opacity: .35; }
+  .choices button.good { border-color: var(--ok); background: #e3f6e8; box-shadow: 0 4px 0 var(--ok); }
+
+  .ctrl { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; }
+  .ctrl button { font-size: 16px; white-space: nowrap; padding: 14px 4px; }
+  .ctrl button.primary { font-size: 19px; }
+  .primary { background: var(--long); border-color: #1f55c4; box-shadow: 0 4px 0 #1f55c4; color: #fff; font-weight: bold; }
+  .primary:active { box-shadow: 0 1px 0 #1f55c4; }
+
+  .now { text-align: center; font-size: 36px; font-weight: bold; margin: 4px 0 10px; }
+  .msg { text-align: center; font-size: 21px; font-weight: bold; min-height: 30px; margin: 10px 0; }
+  .msg.ok { color: var(--ok); }
+  .msg.no { color: var(--short); }
+  .hintbox { background: var(--card); border: 3px dashed var(--line); border-radius: 16px; padding: 10px 14px; font-size: 18px; line-height: 1.6; margin: 10px 0; display: none; }
+  .hint .hintbox { display: block; }
+  .hintbox .s { color: var(--short); font-weight: bold; }
+  .hintbox .l { color: var(--long); font-weight: bold; }
+  .under { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+  .under button { font-size: 18px; }
+  .hide { display: none !important; }
+
+  .stars { text-align: center; font-size: 46px; letter-spacing: 4px; margin: 20px 0 6px; }
+  .result { text-align: center; font-size: 28px; font-weight: bold; margin: 10px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ホーム -->
+  <div id="home" class="screen on">
+    <h1>🕒 とけい れんしゅう</h1>
+    <p class="sub">とけいを よめるように なろう！</p>
+
+    <div class="label">① むずかしさを えらぶ</div>
+    <div class="row c3">
+      <button class="lv" data-lv="1"><b>やさしい</b>ちょうど・はん</button>
+      <button class="lv" data-lv="2"><b>ふつう</b>5ふん ずつ</button>
+      <button class="lv" data-lv="3"><b>むずかしい</b>1ぷん ずつ</button>
+    </div>
+
+    <div class="label">② あそびかたを えらぶ</div>
+    <div class="row">
+      <button class="mode" data-mode="read">👀 なんじ なんぷん？<small>とけいを みて こたえを えらぶ（10もん）</small></button>
+      <button class="mode" data-mode="set">👆 はりを あわせよう<small>はりを うごかして じかんを つくる（10もん）</small></button>
+      <button class="mode" data-mode="free">🔍 さわって みよう<small>はりを じゆうに うごかして しくみを しる</small></button>
+    </div>
+  </div>
+
+  <!-- あそぶ画面 -->
+  <div id="play" class="screen">
+    <div class="top">
+      <button id="back">← もどる</button>
+      <div class="prog" id="prog"></div>
+    </div>
+    <div class="question" id="question"></div>
+
+    <svg id="clock" viewBox="-132 -132 264 264" aria-label="とけい">
+      <circle r="104" fill="#fff" stroke="#3a2f2a" stroke-width="5"/>
+      <path id="wedge" fill="#ffd9da"/>
+      <g id="ticks"></g>
+      <g id="nums"></g>
+      <g id="minRing"></g>
+      <g id="hHand"><line x1="0" y1="10" x2="0" y2="-52" stroke="#e5484d" stroke-width="9" stroke-linecap="round"/></g>
+      <g id="mHand"><line x1="0" y1="14" x2="0" y2="-88" stroke="#2f6fed" stroke-width="5.5" stroke-linecap="round"/></g>
+      <circle r="6" fill="#3a2f2a"/>
+    </svg>
+    <div class="legend">
+      <span><i style="background:var(--short)"></i>みじかいはり＝なんじ</span>
+      <span><i style="background:var(--long)"></i>ながいはり＝なんぷん</span>
+    </div>
+
+    <div class="now hide" id="now"></div>
+    <div class="hintbox" id="hintbox"></div>
+    <div class="msg" id="msg"></div>
+
+    <div class="choices hide" id="choices"></div>
+
+    <div class="ctrl hide" id="ctrl">
+      <button id="minus">◀ もどす</button>
+      <button id="done" class="primary">できた！</button>
+      <button id="plus">すすめる ▶</button>
+    </div>
+
+    <div class="under">
+      <button id="hintBtn">💡 ヒント</button>
+      <button id="next" class="primary hide">つぎへ ▶</button>
+    </div>
+  </div>
+
+  <!-- けっか -->
+  <div id="end" class="screen">
+    <h1>おつかれさま！</h1>
+    <div class="stars" id="stars"></div>
+    <div class="result" id="result"></div>
+    <p class="sub" id="cheer"></p>
+    <div class="row">
+      <button class="primary" id="again">もういちど</button>
+      <button id="toHome">さいしょに もどる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const NS = 'http://www.w3.org/2000/svg';
+const STEP = { 1: 30, 2: 5, 3: 1 };
+const TOTAL = 10;
+
+// えらんだ むずかしさを おぼえておく（おぼえられない かんきょうでも うごくように）
+function loadLevel() { try { return Number(localStorage.getItem('tokei-level')) || 1; } catch (e) { return 1; } }
+function saveLevel() { try { localStorage.setItem('tokei-level', level); } catch (e) {} }
+let level = loadLevel();
+let mode = 'read';
+let t = 0;          // いま時計が指している時刻（0〜719分）
+let target = 0;     // もんだいの時刻
+let qNo = 0, score = 0, firstTry = true, solved = false, lastTarget = -1;
+
+/* ---------- 時計の文字盤を描く ---------- */
+function polar(r, deg) {
+  const a = (deg - 90) * Math.PI / 180;
+  return [r * Math.cos(a), r * Math.sin(a)];
+}
+(function buildFace() {
+  for (let i = 0; i < 60; i++) {
+    const big = i % 5 === 0;
+    const [x1, y1] = polar(big ? 91 : 96, i * 6), [x2, y2] = polar(101, i * 6);
+    const l = document.createElementNS(NS, 'line');
+    l.setAttribute('x1', x1); l.setAttribute('y1', y1); l.setAttribute('x2', x2); l.setAttribute('y2', y2);
+    l.setAttribute('stroke', '#3a2f2a'); l.setAttribute('stroke-width', big ? 3 : 1.2);
+    $('ticks').appendChild(l);
+  }
+  for (let h = 1; h <= 12; h++) {
+    const [x, y] = polar(77, h * 30);
+    const tx = document.createElementNS(NS, 'text');
+    tx.setAttribute('x', x); tx.setAttribute('y', y); tx.setAttribute('class', 'num');
+    tx.textContent = h; $('nums').appendChild(tx);
+    // ヒント用：外がわの「分」の数字
+    const [mx, my] = polar(118, h * 30);
+    const mt = document.createElementNS(NS, 'text');
+    mt.setAttribute('x', mx); mt.setAttribute('y', my); mt.setAttribute('class', 'mnum');
+    mt.textContent = (h * 5) % 60; $('minRing').appendChild(mt);
+  }
+})();
+
+function draw() {
+  const tt = ((t % 720) + 720) % 720;
+  $('hHand').setAttribute('transform', `rotate(${tt / 2})`);
+  $('mHand').setAttribute('transform', `rotate(${(tt % 60) * 6})`);
+  // 短い針がいる「あいだ」をうすい赤でぬる（ヒント用）
+  const h = Math.floor(tt / 60);
+  const [x1, y1] = polar(104, h * 30), [x2, y2] = polar(104, h * 30 + 30);
+  $('wedge').setAttribute('d', `M0 0 L${x1} ${y1} A104 104 0 0 1 ${x2} ${y2} Z`);
+  if (mode === 'free') { $('now').textContent = fmt(tt); renderHint(tt); }
+}
+
+/* ---------- ことば ---------- */
+function pun(m) { return [0, 1, 3, 4, 6, 8].includes(m % 10) ? 'ぷん' : 'ふん'; }
+function hourOf(tt) { return Math.floor(tt / 60) % 12 || 12; }
+function fmt(tt) {
+  const h = hourOf(tt), m = tt % 60;
+  if (m === 0) return h + 'じ';
+  if (m === 30 && level === 1) return h + 'じはん';
+  return h + 'じ ' + m + pun(m);
+}
+
+function renderHint(tt) {
+  const h = hourOf(tt), m = tt % 60, nx = h % 12 + 1;
+  let a, b;
+  if (m === 0) {
+    a = `<span class="s">みじかいはり</span>は ちょうど ${h} → <b>${h}じ</b>`;
+    b = `<span class="l">ながいはり</span>は 12 → <b>ちょうど</b>`;
+  } else {
+    a = `<span class="s">みじかいはり</span>は ${h} と ${nx} の あいだ → とおりすぎた <b>${h}じ</b>`;
+    const base = Math.floor(m / 5) * 5, rest = m - base, n = base / 5;
+    if (rest === 0) {
+      b = `<span class="l">ながいはり</span>は ${n} の ところ → そとの あおい すうじで <b>${m}${pun(m)}</b>`;
+    } else if (base === 0) {
+      b = `<span class="l">ながいはり</span>は 12 から ちいさい めもり ${rest}こ → <b>${m}${pun(m)}</b>`;
+    } else {
+      b = `<span class="l">ながいはり</span>は ${n}（${base}${pun(base)}）から ちいさい めもり ${rest}こ → <b>${m}${pun(m)}</b>`;
+    }
+  }
+  $('hintbox').innerHTML = `① ${a}<br>② ${b}`;
+}
+
+/* ---------- 音 ---------- */
+let ac;
+function beep(good) {
+  try {
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    const notes = good ? [660, 880, 1175] : [220];
+    notes.forEach((f, i) => {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.frequency.value = f; o.type = good ? 'triangle' : 'sine';
+      const st = ac.currentTime + i * 0.11;
+      g.gain.setValueAtTime(0.18, st); g.gain.exponentialRampToValueAtTime(0.001, st + 0.25);
+      o.connect(g); g.connect(ac.destination); o.start(st); o.stop(st + 0.26);
+    });
+  } catch (e) {}
+}
+
+/* ---------- 画面の切りかえ ---------- */
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('on', s.id === id));
+  window.scrollTo(0, 0);
+}
+function markLevel() {
+  document.querySelectorAll('.lv').forEach(b => b.classList.toggle('sel', Number(b.dataset.lv) === level));
+}
+document.querySelectorAll('.lv').forEach(b => b.onclick = () => {
+  level = Number(b.dataset.lv); saveLevel(); markLevel();
+});
+document.querySelectorAll('.mode').forEach(b => b.onclick = () => start(b.dataset.mode));
+$('back').onclick = () => show('home');
+$('toHome').onclick = () => show('home');
+$('again').onclick = () => start(mode);
+markLevel();
+
+function setHint(on) {
+  $('play').classList.toggle('hint', on);
+  $('hintBtn').textContent = on ? '💡 ヒントを けす' : '💡 ヒント';
+}
+$('hintBtn').onclick = () => {
+  const on = !$('play').classList.contains('hint');
+  if (on && mode !== 'free' && !solved) firstTry = false;   // ヒントを見たら★はつかない
+  setHint(on);
+};
+
+function start(m) {
+  mode = m; qNo = 0; score = 0; lastTarget = -1;
+  $('play').classList.toggle('drag', mode !== 'read');
+  $('choices').classList.toggle('hide', mode !== 'read');
+  $('ctrl').classList.toggle('hide', mode === 'read');
+  $('done').style.visibility = mode === 'set' ? 'visible' : 'hidden';
+  $('now').classList.toggle('hide', mode !== 'free');
+  show('play');
+  if (mode === 'free') {
+    $('prog').textContent = '';
+    $('question').textContent = 'はりを ゆびで うごかして みよう';
+    $('msg').textContent = ''; $('msg').className = 'msg';
+    $('next').classList.add('hide');
+    t = 3 * 60; setHint(true); draw();
+  } else {
+    nextQuestion();
+  }
+}
+
+function randomTime() {
+  const step = STEP[level];
+  let v;
+  do { v = Math.floor(Math.random() * 12) * 60 + Math.floor(Math.random() * (60 / step)) * step; }
+  while (v === lastTarget || (mode === 'set' && v === 0));
+  return v;
+}
+
+function nextQuestion() {
+  if (qNo >= TOTAL) return finish();
+  qNo++; firstTry = true; solved = false;
+  target = lastTarget = randomTime();
+  $('prog').textContent = `${qNo} / ${TOTAL} もんめ　★ ${score}`;
+  $('msg').textContent = ''; $('msg').className = 'msg';
+  $('next').classList.add('hide');
+  setHint(false);
+  if (mode === 'read') {
+    t = target;
+    $('question').textContent = 'なんじ なんぷん かな？';
+    renderHint(target);
+    buildChoices();
+  } else {
+    t = 0;
+    $('question').innerHTML = `<span class="big">${fmt(target)}</span> に あわせよう`;
+    hintForSet();
+  }
+  draw();
+}
+
+/* ---------- よむ もんだい（4たく） ---------- */
+function buildChoices() {
+  const h = Math.floor(target / 60), m = target % 60, step = STEP[level];
+  const set = new Set([target]);
+  const add = v => { v = ((v % 720) + 720) % 720; if (v % step === 0 && set.size < 4) set.add(v); };
+  // よくある まちがいを えらぶ先に 入れる
+  if (m > 0) add((h + 1) * 60 + m);                 // 短い針が近い方の数字を読む
+  if (m >= 5) add(h * 60 + Math.floor(m / 5));      // 長い針の数字をそのまま読む（25分→5分）
+  if (m % 5 === 0) add((m / 5) * 60 + h * 5);       // 長い針と短い針を逆に読む
+  add((h - 1) * 60 + m);
+  while (set.size < 4) add(Math.floor(Math.random() * 12) * 60 + Math.floor(Math.random() * (60 / step)) * step);
+  const list = [...set].sort(() => Math.random() - 0.5);
+  const box = $('choices'); box.innerHTML = '';
+  list.forEach(v => {
+    const b = document.createElement('button');
+    b.textContent = fmt(v);
+    b.onclick = () => answerRead(v, b);
+    box.appendChild(b);
+  });
+}
+
+function answerRead(v, btn) {
+  if (solved) return;
+  if (v === target) {
+    btn.classList.add('good');
+    correct();
+  } else {
+    btn.classList.add('ng'); btn.disabled = true;
+    wrong(v);
+  }
+}
+
+/* ---------- あわせる もんだい ---------- */
+function hintForSet() {
+  const h = hourOf(target), m = target % 60, nx = h % 12 + 1;
+  const a = m === 0
+    ? `<span class="l">ながいはり</span>を 12 に あわせる`
+    : `<span class="l">ながいはり</span>を そとの あおい すうじ ${m}${pun(m)} に あわせる`;
+  const b = m === 0
+    ? `<span class="s">みじかいはり</span>は ちょうど ${h}`
+    : `<span class="s">みじかいはり</span>は ${h} と ${nx} の あいだ`;
+  $('hintbox').innerHTML = `① ${a}<br>② ${b}`;
+}
+$('done').onclick = () => {
+  if (solved || mode !== 'set') return;
+  const now = ((t % 720) + 720) % 720;
+  if (now === target) correct(); else wrong(now);
+};
+$('minus').onclick = () => { if (!solved || mode === 'free') { t -= STEP[level]; draw(); } };
+$('plus').onclick  = () => { if (!solved || mode === 'free') { t += STEP[level]; draw(); } };
+
+/* ---------- まる・ばつ ---------- */
+function correct() {
+  solved = true;
+  if (firstTry) score++;
+  beep(true);
+  $('msg').className = 'msg ok';
+  $('msg').textContent = `⭕ せいかい！ ${fmt(target)} だね`;
+  $('prog').textContent = `${qNo} / ${TOTAL} もんめ　★ ${score}`;
+  $('next').textContent = qNo >= TOTAL ? 'けっかを みる ▶' : 'つぎへ ▶';
+  $('next').classList.remove('hide');
+}
+function wrong(v) {
+  firstTry = false;
+  beep(false);
+  const sameM = v % 60 === target % 60, sameH = Math.floor(v / 60) === Math.floor(target / 60);
+  let text = 'おしい！ ヒントを みて もういちど';
+  if (sameM && !sameH) text = 'ながいはりは あってるよ！ みじかいはりを よく みよう';
+  else if (sameH && !sameM) text = 'みじかいはりは あってるよ！ ながいはりを よく みよう';
+  $('msg').className = 'msg no';
+  $('msg').textContent = text;
+  setHint(true);
+}
+$('next').onclick = nextQuestion;
+
+function finish() {
+  const n = score >= 9 ? 3 : score >= 6 ? 2 : 1;
+  $('stars').textContent = '⭐'.repeat(n) + '☆'.repeat(3 - n);
+  $('result').textContent = `${TOTAL}もん中 ${score}もん せいかい！`;
+  $('cheer').textContent = score === TOTAL ? 'ぜんぶ せいかい！ とけいはかせ だね！'
+    : score >= 6 ? 'よく できました！ そのちょうし！' : 'がんばったね！ もういちど やって みよう';
+  show('end');
+}
+
+/* ---------- はりを ゆびで うごかす ---------- */
+const svg = $('clock');
+let dragging = null, lastAng = 0, rawT = 0;
+function pointerAngle(e) {
+  const r = svg.getBoundingClientRect();
+  const x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+  return (Math.atan2(y, x) * 180 / Math.PI + 90 + 360) % 360;
+}
+function angDiff(a, b) { return ((a - b + 540) % 360) - 180; }
+
+svg.addEventListener('pointerdown', e => {
+  if (mode === 'read' || (solved && mode === 'set')) return;
+  const a = pointerAngle(e), tt = ((t % 720) + 720) % 720;
+  const dm = Math.abs(angDiff(a, (tt % 60) * 6)), dh = Math.abs(angDiff(a, tt / 2));
+  dragging = dh < dm ? 'h' : 'm';      // ゆびに ちかい ほうの はりを つかむ
+  lastAng = a; rawT = t;
+  svg.setPointerCapture(e.pointerId);
+  e.preventDefault();
+});
+svg.addEventListener('pointermove', e => {
+  if (!dragging) return;
+  const a = pointerAngle(e), d = angDiff(a, lastAng), step = STEP[level];
+  lastAng = a;
+  rawT += dragging === 'm' ? d / 6 : d * 2;   // 長い針1しゅう＝60分、短い針1しゅう＝720分
+  t = Math.round(rawT / step) * step;
+  draw();
+});
+const endDrag = () => { dragging = null; t = ((t % 720) + 720) % 720; };
+svg.addEventListener('pointerup', endDrag);
+svg.addEventListener('pointercancel', endDrag);
+
+draw();
+</script>
+</body>
+</html>
